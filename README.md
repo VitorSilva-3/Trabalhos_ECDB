@@ -1,4 +1,4 @@
-# Extração de Conhecimento de Dados Biológicos
+# Extração de Conhecimento de Dados Biológicos 24/25
 
 Repositório criado por:
 - [Bárbara Freitas](https://github.com/barbarafreitas22) PG55693
