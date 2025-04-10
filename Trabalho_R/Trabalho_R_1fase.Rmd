@@ -1,0 +1,1159 @@
+---
+title: "Carcinoma Hepatocelular (CHC)"
+author: "Bárbara Freitas (PG55693), Filipe Vasconcelos (PG55697), João Faria (PG55700), Vítor Silva (PG55538)"
+date: "2025-04-10"
+output: html_document
+
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 6)
+```
+
+Este trabalho foi desenvolvido no âmbito da UC Extração de Conhecimentos de Dados Biológicos (2024/25), do Mestrado em Bioinformática da Escola de Engenharia da Universidade do Minho, e tem como objetivo principal analisar, através das ferramentas R e packages do Bioconductor, um conjunto de dados, acedidos a partir do cbioportal, relacionados com o Carcinoma Hepatocelular (CHC).
+Será dividido em duas fases.
+
+# ***1ª Parte***
+
+A primeira fase deste trabalho será constituída pelas seguintes etapas: - explicação dos dados, sua origem e relevância; - tarefas de preparação e de pré-processamento dos dados; - sumarização dos dados (estatística descritiva, exploração com recurso a gráficos); - análise estatística univariada e análise de expressão diferencial e de enriquecimento.
+
+# ***Instalação e importação de packages***
+
+Aqui são apresentados os packages utilizados no estudo, que auxiliam na obtenção e análise de dados, otimizando a extração e a compreensão das informações relevantes.
+
+```{r Instalação de packages}
+#install.packages("tidyverse")
+#install.packages("rpart")
+#install.packages("rsample") 
+#install.packages("caret")
+#install.packages("RColorBrewer")
+#install.packages("gplots")
+#install.packages("survival")
+#install.packages("survminer")
+#install.packages("factoextra")
+#install.packages("gridExtra")
+#install.packages("viridis")
+#install.packages("dplyr")
+#install.packages("ggplot2")
+```
+
+```{r Carregamento de packages}
+library(tidyverse)  
+library(rpart)
+library(rsample)
+library(caret)
+library(RColorBrewer)
+library(gplots)
+library(survival) 
+library(survminer)  
+library(factoextra)  
+library(gridExtra)   
+library(viridis) 
+library(dplyr)
+library(ggplot2)
+```
+
+# ***Introdução***
+
+***Contextualização***
+
+Nas últimas quatro décadas, registaram-se avanços significativos na compreensão, diagnóstico, tratamento e prevenção do cancro [1]. No entanto, o cancro continua a ser a principal causa de morte e um obstáculo significativo ao aumento da esperança de vida em todos os países do mundo. Prevê-se que o número de casos de cancro a nível mundial atinja 28,4 milhões em 2040, o que representa um aumento de 47% em relação a 2020. Vários fatores, de certo modo bem estabelecidos, contribuem para o aumento previsto da incidência global do cancro [2].
+Estes incluem, entre outros, fatores de risco associados a escolhas de estilo de vida, como o consumo de tabaco, a alimentação e a obesidade, a falta de atividade física, o consumo de álcool e a exposição excessiva ao sol [1]. 85-90% dos tumores de fígado são carcinomas hepatocelulares (CHCs). Tratando-se do sexto cancro mais comum em termos de incidência a nível mundial, mas devido ao seu mau prognóstico, tem a segunda maior taxa de mortalidade por cancro [3].
+A distribuição geográfica do carcinoma hepatocelular (CHC) não é uniforme, refletindo as disparidades na ocorrência dos principais fatores de risco, como as infeções pelos vírus das hepatites B e C (VHB, VHC) [3].
+Essa variação na incidência da doença está provavelmente associada a diferenças regionais na exposição a agentes causadores e às variantes genéticas dos vírus. As regiões mais afetadas são o Sudeste Asiático e a África Subsaariana, áreas onde o VHB apresenta um caráter endémico [5].
+Em território português, de acordo com o GLOBOCAN 2008, a taxa de ocorrência deste cancro é reduzida em comparação com outras neoplasias, correspondendo a 1,1% do total de casos oncológicos. No que diz respeito à mortalidade, o CHC responde a 2% dos óbitos por cancro. Dados do instituto nacional de estatística de Portugal indicam que, apenas em 2011, houve 979 mortes por tumores malignos do fígado e vias biliares intra-hepáticas, número que representa um aumento de 84 casos em relação ao ano anterior. Esta condição clínica é pouco frequente antes dos 40 anos, atingindo a sua incidência máxima por volta dos 70 anos [4].
+Esta patologia manifesta-se quase exclusivamente em pacientes com doença hepática crónica que evoluíram para cirrose [5]. A vigilância ativa para deteção precoce do CHC é recomendada através de ecografia hepática a cada seis meses em todos os indivíduos com cirrose. A confirmação diagnóstica requer a avaliação histológica de uma amostra obtida por biópsia tumoral. O diagnóstico não invasivo (baseado em critérios radiológicos) também é uma alternativa válida. A escolha do tratamento depende do estado clínico do paciente, da dimensão da lesão tumoral e da função hepática residual, exigindo decisão conjunta em reunião multidisciplinar especializada (PCM).
+As abordagens curativas incluem transplante hepático, ressecção cirúrgica e ablação percutânea [3].
+
+
+# ***Objetivo***
+
+Com base na problemática apresentada, este trabalho tem como objetivo analisar o perfil clínico de pacientes diagnosticados com carcinoma hepatocelular, utilizando as condições descritas nos metadados do dataset.
+O objetivo é realizar uma análise detalhada para compreender como os fatores clínicos e genéticos influenciam o desenvolvimento e a gravidade da doença.
+Os dados utilizados neste trabalho estão disponíveis no cBioPortal.
+
+***Obtenção dos dados clínicos e respetivos metadados da base de dados***
+
+Com o objetivo de analisar os dados clínicos referentes ao carcinoma hepatocelular, procedemos à extração da informação presente no website cBioPortal, que contém uma ampla variedade de informações clínicas e genómicas, disponibilizadas gratuitamente para a comunidade científica.
+A análise foi realizada, com foco na limpeza e preparação dos dados para garantir a qualidade e a consistência das informações utilizadas no estudo.
+
+```{r Obtenção de dados}
+dados <- read_tsv("C:\\Users\\jf823\\Desktop\\Trabalho extracao\\pancan_pcawg_2020_clinical_data.tsv", show_col_types = FALSE)
+
+glimpse(dados)
+```
+
+Os dados foram extraídos diretamente do arquivo "pancan_pcawg_2020_clinical_data.tsv." Para isso, utilizamos a função "read_tsv" do package "readr", que permite a leitura eficiente de arquivos tabulares.
+A estrutura inicial do dataset foi inspecionada com a função glimpse, que fornece uma visão geral das colunas e tipos de dados.
+
+Através da análise feita acima, é possível verificar que o nosso dataset é uma tabela que possui 323 linhas e 42 colunas. Com a extração dos metadados associados às linhas, podemos concluir que as linhas do objeto correspondem às amostras, sendo que, para cada amostra, existem 42 metadados associados, incluindo o Sample ID, que corresponde a um código único utilizado para identificar cada amostra no estudo. Por outro lado, as colunas representam as diferentes características ou variáveis associadas às amostras, permitindo analisar o impacto que essas características possuem nos dados clínicos. É importante referir que os metadados associados às colunas passam a ter uma apresentação diferente, isto é, as linhas passam a ser identificadas pelo Sample ID, enquanto no objeto original as linhas eram identificadas por outras variáveis, como genes ou pacientes.
+
+***Pré-processamento dos dados***
+
+Com o objetivo de realizar uma filtragem eficiente dos metadados, verificou-se a presença de valores ausentes em cada coluna do dataset. As colunas com mais de 50% de valores ausentes foram removidas, uma vez que estas não fornecem informações suficientes para análises relevantes. Além disso, para variáveis numéricas importantes, como Age at Diagnosis e Mutation Count, os valores ausentes foram substituídos pela média, garantindo a consistência dos dados. Variáveis categóricas, como Sex, Cancer Type e Overall Survival Status, foram convertidas em fatores para facilitar a análise estatística e a visualização. Por fim, foram mantidas apenas as colunas consideradas relevantes para o estudo, assegurando que o dataset final estivesse adequado para análises estatísticas e exploratórias focadas nas características clínicas e genómicas do carcinoma hepatocelular (CHC).
+
+```{r Pré-processamento}
+na_por_coluna <- colSums(is.na(dados))
+print("Colunas com mais valores ausentes:")
+head(sort(na_por_coluna, decreasing = TRUE), 10)
+
+sobrevivencia_existe <- "Overall Survival (Months)" %in% names(dados)
+print(paste("A coluna 'Overall Survival (Months)' existe no dataset original:", sobrevivencia_existe))
+
+limite_na <- 0.5 * nrow(dados)
+dados_limpos <- dados[, colSums(is.na(dados)) <= limite_na]
+
+sobrevivencia_limpo <- "Overall Survival (Months)" %in% names(dados_limpos)
+print(paste("A coluna 'Overall Survival (Months)' existe no dataset limpo:", sobrevivencia_limpo))
+
+dados_limpos <- dados_limpos %>%
+  mutate(`Age at Diagnosis` = if_else(is.na(`Age at Diagnosis`), 
+                                     mean(`Age at Diagnosis`, na.rm = TRUE), 
+                                     `Age at Diagnosis`),
+         `Mutation Count` = if_else(is.na(`Mutation Count`), 
+                                   mean(`Mutation Count`, na.rm = TRUE), 
+                                   `Mutation Count`))
+
+dados_limpos <- dados_limpos %>%
+  mutate(
+    Sex = as.factor(Sex),
+    `Cancer Type` = as.factor(`Cancer Type`),
+    `Overall Survival Status` = as.factor(`Overall Survival Status`),
+    `Whole Genome Duplication` = as.factor(`Whole Genome Duplication`),
+    `Tumor Stage (AJCC)` = as.factor(`Tumor Stage (AJCC)`)
+  )
+
+print("Colunas disponíveis após limpeza:")
+names(dados_limpos)
+```
+```{r Pré-processamento2}
+dados_clinicos_genomicos <- dados_limpos %>%
+  dplyr::select(`Sample ID`, `Age at Diagnosis`, `Mutation Count`, Ploidy, Purity, `Overall Survival Status`, 
+                `Tumor Stage (AJCC)`, `Whole Genome Duplication`, Sex)
+
+metadados_amostras <- dados_limpos %>%
+  dplyr::select(-c(`Age at Diagnosis`, `Mutation Count`, Ploidy, Purity, `Overall Survival Status`, 
+                   `Tumor Stage (AJCC)`, `Whole Genome Duplication`, Sex))
+
+```
+
+Com o uso do package dplyr, extraímos as colunas relevantes para análises clínicas e genómicas, enquanto os metadados das amostras foram separados para facilitar análises específicas. Essa separação permite realizar análises detalhadas, como normalização, estatísticas descritivas e análises de associação, garantindo que os dados estejam organizados e prontos para as etapas subsequentes.
+Com estas etapas, garantimos que os dados estão prontos para as análises estatísticas, permitindo uma exploração detalhada do impacto de fatores clínicos no carcinoma hepatocelular.
+
+# ***Análise descritiva e exploratória dos dados***
+
+***Estatísticas descritivas gerais***
+
+Nesta seção, realizamos uma análise descritiva das variáveis mais relevantes do dataset, "Age at Diagnosis"(idade no diagnóstico), "Mutation Count"(contagem de mutações), "Ploidy"(ploidia), "Sex"(sexo) e "Overall Survival Status"(estado de sobrevivência), tendo estas um especial foco no carcinoma hepatocelular (CHC).
+As estatísticas incluem medidas de tendência central e dispersão, além de distribuições categóricas.
+
+```{r Análise descritiva}
+summary_stats <- dados_limpos %>%
+  dplyr::select(`Age at Diagnosis`, `Mutation Count`, Ploidy, Sex, `Overall Survival Status`)
+summary(summary_stats)
+
+hcc_stats <- dados_limpos %>%
+  filter(`Cancer Type Detailed` == "Hepatocellular Carcinoma") %>%
+  dplyr::select(`Age at Diagnosis`, `Mutation Count`, Ploidy)
+summary(hcc_stats)
+
+print("Distribuição por sexo:")
+table(dados_limpos$Sex)
+
+print("Distribuição por estado de sobrevivência:")
+table(dados_limpos$`Overall Survival Status`)
+```
+
+```{r Análise comparativa}
+summary_stats <- dados_limpos %>%
+  dplyr::select(Age_at_Diagnosis = `Age at Diagnosis`, 
+                Mutation_Count = `Mutation Count`, 
+                Ploidy, 
+                Sex, 
+                Overall_Survival_Status = `Overall Survival Status`)
+
+summary(summary_stats)
+
+hcc_stats <- dados_limpos %>%
+  filter(`Cancer Type Detailed` == "Hepatocellular Carcinoma") %>%
+  dplyr::select(Age_at_Diagnosis = `Age at Diagnosis`, 
+                Mutation_Count = `Mutation Count`, 
+                Ploidy)
+
+summary(hcc_stats)
+
+
+print("Distribuição por estado de sobrevivência:")
+table(summary_stats$Overall_Survival_Status)
+
+ggplot(summary_stats, aes(x = Overall_Survival_Status, fill = Overall_Survival_Status)) +
+  geom_bar() +
+  labs(title = "Distribuição por estado de sobrevivência", x = "Estado de sobrevivência", y = "Frequência") +
+  theme_minimal()
+```
+O gráfico ilustra a distribuição por estado de sobrevivência dos deste estudo. Observa-se que a maioria dos pacientes está no grupo "LIVING" (vivos), com 254 indivíduos, enquanto o grupo "DECEASED" (falecidos) é composto por 69 indivíduos. Essa diferença significativa reflete uma maior proporção de pacientes vivos no momento da análise.
+
+
+***Análise individual de cada variável com gráficos***
+
+```{r Distribuição da idade no diagnóstico}
+
+print("Distribuição da idade no diagnóstico:")
+summary(summary_stats$Age_at_Diagnosis)
+
+ggplot(summary_stats, aes(x = Age_at_Diagnosis)) +
+  geom_histogram(binwidth = 5, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Distribuição da idade no diagnóstico", x = "Idade", y = "Frequência") +
+  theme_minimal()
+```
+
+O gráfico apresentado ilustra a distribuição dos valores da idade no diagnóstico dos pacientes diagnosticados no estudo.  A média da idade é de aproximadamente 65.77 anos, indicando que a maioria dos pacientes foi diagnosticada em idades mais avançadas, o que é consistente com o perfil epidemiológico do CHC, frequentemente associado a fatores de risco acumulados ao longo da vida, como infecções crónicas por hepatite B ou C e consumo excessivo de álcool.
+
+O gráfico de barras demonstra uma distribuição assimétrica à esquerda (leve assimetria negativa), com a maior concentração de pacientes diagnosticados entre os 60 e 74 anos (3º quartil). Este padrão sugere que o CHC é mais prevalente em indivíduos de meia idade e idosos, reforçando a importância de estratégias de rastreamento em populações de risco nessa faixa etária.
+
+A análise da distribuição etária é crucial para o nosso trabalho, pois permite identificar padrões demográficos associados ao diagnóstico do CHC. Esses dados podem ser utilizados para correlacionar a idade com outras variáveis clínicas e genómicas, como a contagem de mutações, ploidia e estado de sobrevivência, ajudando a compreender melhor os fatores prognósticos e a evolução da doença. Por exemplo, pacientes diagnosticados em idades mais avançadas podem apresentar características tumorais mais agressivas ou menor resposta ao tratamento, o que pode ser explorado em análises subsequentes.
+
+
+```{r Distribuição da contagem de mutações}
+
+print("Distribuição da contagem de mutações:")
+summary(summary_stats$Mutation_Count)
+
+ggplot(summary_stats, aes(x = Mutation_Count)) +
+  geom_histogram(binwidth = 10, fill = "green", color = "black", alpha = 0.7) +
+  labs(title = "Distribuição da contagem de mutações", x = "Contagem de mutações", y = "Frequência") +
+  theme_minimal()
+
+```
+
+O gráfico apresentado ilustra a distribuição da contagem de mutações nos pacientes diagnosticados neste estudo.  A maior parte das amostras apresenta contagens de mutações concentradas entre 49 (1º quartil) e 97 (3º quartil), como podemos confirmar pela densidade de barras no intervalo central do histograma.
+
+A distribuição é assimétrica à direita, com uma cauda longa que reflete a presença de algumas amostras com contagens de mutações muito elevadas (outliers). Esses valores extremos podem indicar casos específicos com maior instabilidade genómica, possivelmente associados a fatores como duplicação genómica ou exposição a agentes mutagénicos ou até mesmo associados à genética. A análise da contagem de mutações é fundamental para compreender a heterogeneidade genómica do CHC. Pacientes com maior carga mutacional podem apresentar características tumorais distintas, como maior agressividade ou resposta diferencial a terapias específicas, como imunoterapia.
+
+
+```{r Perfil de Ploidia dos pacientes}
+
+print("Perfil de Ploidia dos pacientes:")
+summary(summary_stats$Ploidy)
+
+ggplot(summary_stats, aes(x = Ploidy)) +
+  geom_histogram(binwidth = 0.1, fill = "purple", color = "black", alpha = 0.7) +
+  labs(title = "Perfil de Ploidia dos pacientes", x = "Ploidia", y = "Frequência") +
+  theme_minimal()
+```
+
+O gráfico apresentado ilustra a distribuição da ploidia nos pacientes diagnosticados neste estudo. A ploidia, que representa o número de conjuntos completos de cromossomos em uma célula. É uma característica genómica importante para avaliar a instabilidade genómica e a progressão tumoral.
+
+A média é de 2.389, indicando que a maioria dos pacientes apresenta valores próximos de 2, o que é consistente com a ploidia diploide normal.
+O gráfico mostra uma distribuição assimétrica à direita, com a maior concentração de valores entre 1.9 e 2.6 (1º e 3º quartis). Isso sugere que a maioria dos tumores mantém uma ploidia próxima da normalidade, mas há subgrupos com valores mais elevados, indicando possíveis eventos de duplicação genómica ou aneuploidia.
+A presença de valores mais altos de ploidia, acima de 3, pode estar associada a tumores mais agressivos ou com maior instabilidade genómica. Tumores com ploidia elevada podem estar associados a características tumorais mais agressivas, maior carga mutacional ou pior prognóstico.
+
+
+```{r Distribuição da contagem de mutações2}
+
+print("Distribuição sexual dos pacientes diagnosticados:")
+table(summary_stats$Sex)
+
+ggplot(summary_stats, aes(x = Sex, fill = Sex)) +
+  geom_bar() +
+  labs(title = "Distribuição sexual dos pacientes diagnosticados", x = "Sexo", y = "Frequência") +
+  theme_minimal()
+```
+
+O gráfico apresentado ilustra a distribuição por sexo dos pacientes incluídos no estudo. Observa-se que a maioria dos pacientes é do sexo masculino (234 indivíduos), enquanto o sexo feminino é representado por 89 indivíduos. Essa diferença significativa reflete um padrão epidemiológico bem documentado para o CHC, que é mais prevalente em homens do que em mulheres.
+
+A predominância masculina pode estar associada a fatores de risco mais comuns em homens, como maior prevalência de consumo de álcool, infeções crónicas (por hepatite B ou C), e exposição a agentes hepatotóxicos.
+A proporção de homens para mulheres no dataset é aproximadamente 2,6:1, o que está alinhado com estudos epidemiológicos que indicam que o CHC é mais frequente em homens devido a diferenças biológicas, hormonais e comportamentais. 
+
+
+
+***Análise exploratória com gráficos***
+
+Através de representações gráficas, foi possível observar os aspetos mais relevantes do grupo de pacientes com carcinoma hepatocelular, como a distribuição etária, o número de mutações genéticas, a ploidia e as relações existentes entre diferentes variáveis.
+
+```{r Análise exploratória com gráficos}
+
+p1 <- ggplot(dados_limpos, aes(x = "", y = `Age at Diagnosis`)) +
+  geom_boxplot(fill = "steelblue") +
+  labs(title = "Distribuição da idade no diagnóstico",
+       x = "",
+       y = "Idade (anos)") +
+  theme_minimal()
+
+p2 <- ggplot(dados_limpos, aes(x = `Overall Survival Status`, 
+                              y = `Mutation Count`)) +
+  geom_boxplot(fill = "orange") +
+  labs(title = "Contagem de mutações por estado de sobrevivência", 
+       x = "Estado de sobrevivência", 
+       y = "Contagem de mutações") +
+  theme_minimal()
+
+p3 <- ggplot(dados_limpos, aes(x = Sex, y = Ploidy)) +
+  geom_boxplot(fill = "lightgreen") +
+  labs(title = "Distribuição de ploidia por sexo",
+       x = "Sexo",
+       y = "Ploidia") +
+  theme_minimal()
+
+p4 <- ggplot(dados_limpos, aes(x = `Age at Diagnosis`, y = `Mutation Count`)) +
+  geom_point(aes(color = Sex), alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE, color = "darkred") +
+  labs(title = "Relação entre idade e contagem de mutações",
+       x = "Idade no diagnóstico (anos)",
+       y = "Contagem de mutações") +
+  theme_minimal()
+
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+```
+A partir do primeiro gráfico intitulado "Distribuição da idade no diagnóstico" observa-se que o boxplot  abrange o intervalo entre o primeiro (Q1) e o terceiro quartil (Q3) e reúne 50% dos dados, demonstrando a faixa de idades onde se concentra a maior parte dos diagnósticos. Para além da informação contida na caixa, as “extensões” indicam a variação dos dados até 1,5 vezes o intervalo interquartil. A presença de pontos isolados fora dos limites, os chamados outliers, revela a existência de casos atípicos, diagnósticos feitos a idades bem inferiores. A existência de outliers demonstra que não é raro ocorrerem diagnósticos em indivíduos significativamente mais jovens, sugerindo uma dispersão considerável na distribuição etária.
+
+
+A partir do segundo gráfico intitulado "Contagem de mutações por estado de sobrevivência" observa-se que a maioria dos pacientes está no grupo "LIVING" (vivos), com 254 indivíduos, enquanto o grupo "DECEASED" (falecidos) é composto por 69 indivíduos. A predominância de pacientes vivos pode estar relacionada a fatores como o estádio do tumor no momento do diagnóstico (detetado numa fase inicial), a eficácia dos tratamentos aplicados ou características genómicas específicas.
+A proporção de pacientes vivos para falecidos é aproximadamente 3,7:1, indicando que a maioria dos pacientes no dataset apresenta um prognóstico favorável ou está em acompanhamento ativo.
+
+
+A partir do terceiro gráfico intitulado "Distribuição de ploidia por sexo" podemos observar dois boxplots, um para o sexo feminino (Female) e outro para o masculino (Male).  Ao observarmos o grupo feminino, verificamos que os valores de ploidia se concentram num intervalo relativamente mais homogéneo, com a mediana ligeiramente acima de 2. Já no grupo masculino, apesar de a mediana também rondar o valor 2, surgem vários outliers que atingem valores de ploidia bastante superiores (entre 3 a 4), revelando uma maior variabilidade nesse grupo.
+
+
+Já a partir do último gráfico, intitulado "Relação entre idade e contagem de mutações" observa-se que os dados estão separados por sexo, com pontos rosa representando pacientes do sexo feminino e pontos azul-turquesa representando pacientes do sexo masculino. Observa-se uma linha vermelha de tendência ascendente que sugere uma correlação positiva entre a idade no diagnóstico e o número de mutações. Isto indica que, de modo geral, quanto mais avançada a idade do paciente no momento do diagnóstico, maior tende a ser o número de mutações identificadas.
+A maioria dos dados concentra-se na faixa entre 50 e 100 mutações, com idades que variam entre 40 e 80 anos. Não parece haver uma diferença marcante no padrão de distribuição entre homens e mulheres, embora os valores extremos mais elevados sejam observados em mulheres. Este gráfico gráfico sugere que o acúmulo de mutações pode estar associado ao processo de envelhecimento, o que está de acordo com conhecimentos estabelecidos sobre a acumulação de alterações genéticas ao longo do tempo e com os dados da distribuição de idade no momento do diagnóstico. Esta relação pode ter implicações importantes para a compreensão do desenvolvimento de certas patologias e para estratégias de diagnóstico precoce.
+
+
+
+***Análise exploratória adicional por estádio tumoral***
+
+Exploramos a distribuição de pacientes por estádio tumoral e a relação entre o estádio e outras variáveis, como carga mutacional e idade.
+
+```{r Análise exploratória adicional}
+if(sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  p5a <- ggplot(dados_limpos %>% filter(!is.na(`Tumor Stage (AJCC)`)), 
+               aes(x = `Tumor Stage (AJCC)`, fill = `Tumor Stage (AJCC)`)) +
+    geom_bar() +
+    scale_fill_viridis_d(alpha = 0.8) +  
+    labs(title = "Distribuição por estádio tumoral",
+         x = "Estádio AJCC",
+         y = "Número de pacientes") +
+    theme_minimal() +
+    guides(fill = "none")  
+  
+  p5b <- ggplot(dados_limpos %>% filter(!is.na(`Tumor Stage (AJCC)`)), 
+                aes(x = `Tumor Stage (AJCC)`, y = `Mutation Count`, fill = `Tumor Stage (AJCC)`)) +
+    geom_boxplot(alpha = 0.7) +
+    scale_fill_viridis_d() +
+    labs(title = "Carga mutacional por estádio tumoral",
+         x = "Estádio AJCC",
+         y = "Contagem de mutações") +
+    theme_minimal() +
+    guides(fill = "none")  
+  
+  p5c <- ggplot(dados_limpos %>% filter(!is.na(`Tumor Stage (AJCC)`)), 
+                aes(x = `Tumor Stage (AJCC)`, y = `Age at Diagnosis`, fill = `Tumor Stage (AJCC)`)) +
+    geom_boxplot(alpha = 0.7) +
+    scale_fill_viridis_d() +
+    labs(title = "Idade no diagnóstico por estádio tumoral",
+         x = "Estádio AJCC",
+         y = "Idade (anos)") +
+    theme_minimal() +
+    guides(fill = "none")  
+  
+  p5d <- ggplot(dados_limpos %>% 
+                  filter(!is.na(`Tumor Stage (AJCC)`) & !is.na(`Whole Genome Duplication`)),
+                aes(x = `Tumor Stage (AJCC)`, fill = `Whole Genome Duplication`)) +
+    geom_bar(position = "fill") +
+    scale_fill_brewer(palette = "Set2") +
+    labs(title = "Proporção de duplicação genómica por estádio",
+         x = "Estádio AJCC",
+         y = "Proporção",
+         fill = "Duplicação genómica") +
+    theme_minimal()
+  
+  grid.arrange(p5a, p5b, p5c, p5d, ncol = 2)
+}
+```
+
+Em relação ao gráfico intitulado "Distribuição por estádio tumoral", podemos afirmar que maioria dos pacientes com carcinoma hepatocelular (CHC) encontra-se nos estádios 2 e 3, com o estádio 2 a registar o maior número de casos. Subgrupos específicos, como T1N0M0, T2N0M0 e T3aN0M0, estão pouco representados. Esta distribuição indica que o diagnóstico ocorre maioritariamente em fases intermédias da doença, sendo que a baixa incidência no estádio 4 pode dever-se à elevada mortalidade ou à dificuldade de deteção em fases muito avançadas.
+
+Em relação ao gráfico intitulado "Carga mutacional por estádio tumoral", observa-se que a carga mutacional é semelhante entre os estádios 1, 2 e 3, com tendência ligeira de aumento no estádio 4. Há maior variabilidade nos estádios 3 e 4, com outliers a evidenciar cargas mutacionais muito elevadas. Os subgrupos T1N0M0, T2N0M0 e T3aN0M0 mostram cargas mutacionais superiores, em especial o T2N0M0, sugerindo perfis genómicos possivelmente associados a maior instabilidade genómica ou exposição a agentes mutagénicos.
+
+Em relação ao gráfico intitulado "Idade no diagnóstico por estádio tumoral", a idade mediana no momento de diagnóstico está entre os 60 e os 70 anos em todos os estádios, refletindo o perfil epidemiológico do CHC. Nos estádios 3 e 4 observa-se maior variação, com outliers em idades mais jovens. Os subgrupos específicos tendem a ser diagnosticados em idades mais avançadas, sobretudo o T2N0M0, o que poderá indicar deteção em fases mais tardias da vida.
+
+
+Por último, quanto ao gráfico intitulado "Proporção de duplicação genómica por estádio", a duplicação genómica (WGD) está presente em todos os estádios, mas torna-se mais frequente no estádio 4, onde mais de metade dos pacientes apresenta WGD. Nos estádios 1 a 3, a maioria não apresenta duplicação. Isto sugere que a WGD está associada a fases mais avançadas da doença e pode estar relacionada com maior instabilidade cromossómica e pior prognóstico. A sua presença em estádios iniciais pode indicar subgrupos com tumores mais agressivos.
+
+
+
+# ***Análise estatística***
+
+***Testes de hipóteses***
+
+Nesta seção, realizamos testes estatísticos para avaliar diferenças significativas entre variáveis clínicas e genómicas no carcinoma hepatocelular (CHC).
+Os testes incluem comparações entre grupos e análises de associação.
+
+***Testes estatísticos comparativos***
+
+1.Teste t para comparar contagem de mutações entre sexos
+
+Avaliamos se há diferença significativa na contagem de mutações entre pacientes do sexo masculino e feminino.
+
+Hipóteses:
+H0 (Hipótese Nula): Não há diferença significativa na média da contagem de mutações entre os pacientes do sexo feminino e masculino.
+H1 (Hipótese Alternativa): Existe uma diferença significativa na média da contagem de mutações entre os pacientes do sexo feminino e masculino.
+
+```{r Teste t}
+teste_t <- t.test(`Mutation Count` ~ Sex, data = dados_limpos)
+cat("Resultado do teste t (contagem de mutações por sexo):\n")
+print(teste_t)
+```
+
+Com um valor de p de 0.4879 (maior que o nível de significância usual de 0.05), não se rejeita a hipótese nula. Os resultados mostram que não existe uma diferença estatisticamente significativa na média de mutações entre pacientes do sexo feminino e masculino. O valor de p elevado (0.4879) e o intervalo de confiança que inclui zero indicam que as diferenças observadas podem ser fruto do acaso. Assim, com os dados disponíveis, não há evidência de que o sexo tenha impacto na contagem de mutações em casos de cancro hepatobiliar.
+
+```{r Boxplot}
+head(dados)
+
+dados$`Tumor Stage (AJCC)` <- as.factor(dados$`Tumor Stage (AJCC)`)
+
+boxplot(
+  dados$`Age at Diagnosis` ~ dados$`Tumor Stage (AJCC)`,
+  main = "Idade do paciente por estádio do tumor (AJCC)",
+  xlab = "Estádio do tumor (AJCC)",
+  ylab = "Idade do paciente",
+  col = "lightblue",
+  border = "darkblue",
+  notch = TRUE
+)
+
+abline(h = median(dados$`Age at Diagnosis`, na.rm = TRUE), col = "red", lty = 2)
+
+legend("topright", legend = "Mediana geral", col = "red", lty = 2, bty = "n")
+```
+O gráfico apresentado ilustra a idade dos pacientes por estádio do tumor (AJCC). A mediana geral da idade (linha vermelha) está em torno de 70 anos, o que é consistente com o perfil epidemiológico do CHC, que afeta predominantemente indivíduos de meia-idade e idosos.A idade mínima observada é de aproximadamente 30 anos, enquanto a máxima ultrapassa os 80 anos, indicando uma faixa etária ampla entre os pacientes.
+A mediana da idade é semelhante entre os estádios 1, 2, 3 e 4, situando-se próxima da mediana geral. A variabilidade (representada pelo comprimento dos boxplots) é maior nos estádios 1 e 2, sugerindo que pacientes diagnosticados nesses estádios apresentam uma faixa etária mais ampla.Outliers estão presentes em todos os estádios, indicando casos isolados de pacientes diagnosticados em idades muito jovens ou muito avançadas.
+Os subgrupos apresentam menor variabilidade em relação aos estádios gerais, com idades concentradas em torno de valores específicos.O subgrupo T2N0M0 apresenta pacientes diagnosticados em idades mais avançadas, enquanto o subgrupo T1N0M0 inclui pacientes mais jovens.
+A menor variabilidade nos estádios avançados (3 e 4) pode refletir um padrão mais homogéneo de progressão da doença em pacientes mais velhos.
+
+
+
+2. ANOVA para comparar contagem de mutações entre estádios tumorais
+
+Passando aos testes estatísticos, definiram-se as seguintes hipóteses:
+
+H0: Não existem diferenças significativas na média das idades dos pacientes entre os diferentes estádios tumorais AJCC (American Joint Committee on Cancer).
+H1: Existem diferenças significativas na média das idades dos pacientes entre os diferentes estádios tumorais (AJCC).
+
+Através do shapiro.test(), verificou-se que os dados da variável Age at Diagnosis não seguem uma distribuição normal (p-value < 0.05). No entanto, ao analisar o Q-Q Plot com a sobreposição da linha qqline, observou-se que os pontos estão, na sua maioria, alinhados com a diagonal, com desvios apenas nas extremidades. Além disso, considerando o grande tamanho da amostra (n = 323), e com base no teorema do limite central, aceitou-se a normalidade dos dados, apesar do p-value do teste de Shapiro-Wilk indicar a rejeição da hipótese nula.
+
+Garantindo a normalidade e a homogeneidade das variâncias (confirmada pelo teste de Levene), procedeu-se à análise ANOVA one-way para verificar se existem diferenças significativas na média das idades dos pacientes entre os diferentes estádios tumorais. O resultado da ANOVA apresentou um p-value de 0.722, o que não permite rejeitar a hipótese nula. Assim, conclui-se que não há diferenças significativas na média das idades dos pacientes entre os diferentes estádios tumorais (AJCC).
+
+```{r ANOVA}
+shapiro_result <- shapiro.test(dados_limpos$`Age at Diagnosis`)
+cat("Resultado do teste de Shapiro-Wilk para normalidade da idade no diagnóstico:\n")
+print(shapiro_result)
+
+n_amostras <- sum(!is.na(dados_limpos$`Age at Diagnosis`))
+cat("\nNúmero de amostras disponíveis:", n_amostras, "\n")
+
+if (n_amostras > 30) {  
+  qqnorm(dados_limpos$`Age at Diagnosis`, main = "Q-Q Plot da idade no diagnóstico")
+  qqline(dados_limpos$`Age at Diagnosis`, col = "red", lwd = 2)
+}
+
+if (n_amostras > 30) {
+  cat("\nApesar do p-value do teste de Shapiro-Wilk ser < 0.05, aceita-se a normalidade dos dados devido ao grande tamanho da amostra (n > 30).\n")
+}
+
+if (sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  library(car)
+  levene_result <- leveneTest(`Age at Diagnosis` ~ `Tumor Stage (AJCC)`, data = dados_limpos)
+  cat("\nResultado do teste de Levene para homogeneidade das variâncias:\n")
+  print(levene_result)
+
+  if (levene_result$`Pr(>F)`[1] > 0.05) {
+    modelo_anova <- aov(`Age at Diagnosis` ~ `Tumor Stage (AJCC)`, data = dados_limpos)
+    cat("\nResultado da ANOVA (idade por estádio tumoral):\n")
+    print(summary(modelo_anova))
+
+    if (summary(modelo_anova)[[1]][["Pr(>F)"]][1] < 0.05) {
+      cat("\nTeste post-hoc de Tukey para comparações múltiplas:\n")
+      print(TukeyHSD(modelo_anova))
+    } else {
+      cat("\nNão há diferenças significativas na média das idades entre os estádios tumorais (p-value > 0.05).\n")
+    }
+  } else {
+    cat("\nAs variâncias não são homogéneas (p-value do teste de Levene < 0.05). A ANOVA pode não ser apropriada.\n")
+  }
+}
+```
+O gráfico apresentado é um Q-Q Plot que avalia a normalidade da distribuição da idade no diagnóstico de pacientes com carcinoma hepatocelular (CHC) deste estudo, comparando os quantis observados com os quantis teóricos de uma distribuição normal. A maioria dos pontos segue a linha diagonal, sugerindo uma distribuição aproximadamente normal, embora pequenas discrepâncias nas extremidades indiquem a presença de outliers.
+
+O teste de normalidade de Shapiro-Wilk apresentou um p-valor inferior a 0,05, rejeitando a hipótese de normalidade. Contudo, devido ao grande tamanho da amostra (n = 323), a normalidade dos dados pode ser aceite para fins práticos, já que testes de normalidade são sensíveis a amostras grandes. O teste de Levene, por sua vez, indicou que as variâncias entre os diferentes estádios tumorais são homogéneas (p-valor = 0.2722), o que é um pré-requisito para a ANOVA.
+
+A análise de variância (ANOVA) não revelou diferenças significativas na média de idade entre os diferentes estádios tumorais (p-valor = 0.351), sugerindo que a idade no diagnóstico é semelhante entre os estádios. Assim, o Q-Q Plot e os resultados dos testes indicam que a idade no diagnóstico pode ser considerada aproximadamente normal para análises subsequentes, apesar do resultado do teste de Shapiro-Wilk.
+
+
+De seguida recorremos ao teste de Bartlett, que é utilizado para verificar se as variâncias entre diferentes grupos são homogéneas, o que é uma suposição importante em testes paramétricos como a ANOVA. Ele é sensível a diferenças nas variâncias e é recomendado quando se trabalha com amostras grandes e distribuições normais. A sua principal vantagem é ser mais poderoso que outros testes de homogeneidade de variâncias, como o de Levene, em casos de dados normais. No entanto, ele pode ser sensível a desvios dessa normalidade. O uso do teste é essencial para garantir a validade de análises paramétricas, evitando distorções nos resultados.
+
+```{r Bartlett}
+if (sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  grupos_validos <- dados_limpos %>%
+    group_by(`Tumor Stage (AJCC)`) %>%
+    filter(n() >= 2) %>%
+    ungroup()
+  
+  if (n_distinct(grupos_validos$`Tumor Stage (AJCC)`) > 1) {
+    cat("\nTeste de Bartlett para homogeneidade das variâncias:\n")
+    
+    bartlett_result <- bartlett.test(`Age at Diagnosis` ~ `Tumor Stage (AJCC)`, data = grupos_validos)
+    print(bartlett_result)
+    
+    if (bartlett_result$p.value > 0.05) {
+      cat("\nAs variâncias são homogéneas (p-value > 0.05). Pode-se proceder à ANOVA.\n")
+    } else {
+      cat("\nAs variâncias não são homogéneas (p-value <= 0.05). A ANOVA pode não ser apropriada.\n")
+    }
+  } else {
+    cat("\nNão há grupos suficientes com pelo menos 2 observações para realizar o teste de Bartlett.\n")
+  }
+} else {
+  cat("\nNão há dados suficientes para realizar o teste de Bartlett.\n")
+}
+```
+
+
+Realizou-se o teste não paramétrico Kruskal-Wallis para verificar se os resultados seriam os mesmos. O teste apresentou um valor de prova de 0.68, indicando que não há diferenças significativas na média das idades dos pacientes entre os diferentes estádios tumorais (AJCC).
+
+```{r Kruskal-Wallis}
+if (sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  cat("\nRealizando o teste não paramétrico Kruskal-Wallis para verificar diferenças na idade entre estádios tumorais (AJCC):\n")
+  
+  kruskal_result <- kruskal.test(`Age at Diagnosis` ~ `Tumor Stage (AJCC)`, data = dados_limpos)
+  
+  print(kruskal_result)
+  
+  if (kruskal_result$p.value > 0.05) {
+    cat("\nNão há diferenças significativas na média das idades dos pacientes entre os diferentes estádios tumorais (p-value =", round(kruskal_result$p.value, 4), ").\n")
+  } else {
+    cat("\nHá diferenças significativas na média das idades dos pacientes entre os diferentes estádios tumorais (p-value =", round(kruskal_result$p.value, 4), ").\n")
+  }
+} else {
+  cat("\nNão há dados suficientes para realizar o teste de Kruskal-Wallis.\n")
+}
+```
+
+
+Definiram-se as seguintes hipóteses:
+
+H0: Não existem diferenças significativas na média da contagem de mutações entre os diferentes estádios tumorais (AJCC).
+H1: Existem diferenças significativas na média da contagem de mutações entre os diferentes estádios tumorais (AJCC).
+
+```{r Mutation Count}
+cat("\nAnálise para a variável: Mutation Count\n")
+
+if (sum(!is.na(dados_limpos$`Mutation Count`)) > 3) {
+  shapiro_result <- shapiro.test(dados_limpos$`Mutation Count`)
+  cat("Resultado do teste de Shapiro-Wilk para normalidade:\n")
+  print(shapiro_result)
+}
+
+qqnorm(dados_limpos$`Mutation Count`, main = "Q-Q Plot da variável Mutation Count")
+qqline(dados_limpos$`Mutation Count`, col = "red", lwd = 2)
+
+if (sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  grupos_validos <- dados_limpos %>%
+    group_by(`Tumor Stage (AJCC)`) %>%
+    filter(n() >= 2) %>%
+    ungroup()
+  
+  if (n_distinct(grupos_validos$`Tumor Stage (AJCC)`) > 1) {
+    bartlett_result <- bartlett.test(`Mutation Count` ~ `Tumor Stage (AJCC)`, data = grupos_validos)
+    cat("\nResultado do teste de Bartlett para homogeneidade das variâncias:\n")
+    print(bartlett_result)
+  } else {
+    cat("\nNão há grupos suficientes com pelo menos 2 observações para realizar o teste de Bartlett.\n")
+  }
+}
+
+if (sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  modelo_anova <- aov(`Mutation Count` ~ `Tumor Stage (AJCC)`, data = dados_limpos)
+  cat("\nResultado da ANOVA (Mutation Count por estádio tumoral):\n")
+  print(summary(modelo_anova))
+}
+
+kruskal_result <- kruskal.test(`Mutation Count` ~ `Tumor Stage (AJCC)`, data = dados_limpos)
+cat("\nResultado do teste de Kruskal-Wallis:\n")
+print(kruskal_result)
+```
+
+Através do shapiro.test(), verificou-se que os dados da variável Mutation Count não seguem uma distribuição normal (p-value < 0.05). No entanto, devido ao grande tamanho da amostra (n = 316), e com base no teorema do limite central, aceitou-se a normalidade dos dados para a realização da ANOVA, apesar do p-value do teste de Shapiro-Wilk indicar a rejeição da hipótese nula.
+
+No entanto, o teste de Bartlett revelou que as variâncias entre os grupos não são homogéneas (p-value < 0.05), o que viola um dos pressupostos da ANOVA. Apesar disso, procedeu-se à análise ANOVA one-way para verificar se existem diferenças significativas na média da contagem de mutações entre os diferentes estádios tumorais. O resultado da ANOVA apresentou um p-value de 0.14, o que não permite rejeitar a hipótese nula. Assim, conclui-se que não há diferenças significativas na média da contagem de mutações entre os diferentes estádios tumorais (AJCC).
+
+Para confirmar os resultados, realizou-se o teste não paramétrico Kruskal-Wallis, que não exige a homogeneidade das variâncias. O teste apresentou um p-value de 0.3906, indicando que não há diferenças significativas na mediana da contagem de mutações entre os diferentes estádios tumorais (AJCC).
+
+
+
+Definiram-se as seguintes hipóteses:
+
+H0: Não existem diferenças significativas na média da ploidia entre os diferentes estádios tumorais (AJCC).
+H1: Existem diferenças significativas na média da ploidia entre os diferentes estádios tumorais (AJCC).
+
+```{r Ploidy}
+cat("\nAnálise para a variável: Ploidy\n")
+
+if (sum(!is.na(dados_limpos$Ploidy)) > 3) {
+  shapiro_result <- shapiro.test(dados_limpos$Ploidy)
+  cat("Resultado do teste de Shapiro-Wilk para normalidade:\n")
+  print(shapiro_result)
+}
+
+qqnorm(dados_limpos$Ploidy, main = "Q-Q Plot da variável Ploidy")
+qqline(dados_limpos$Ploidy, col = "red", lwd = 2)
+
+if (sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  grupos_validos <- dados_limpos %>%
+    group_by(`Tumor Stage (AJCC)`) %>%
+    filter(n() >= 2) %>%
+    ungroup()
+  
+  if (n_distinct(grupos_validos$`Tumor Stage (AJCC)`) > 1) {
+    bartlett_result <- bartlett.test(Ploidy ~ `Tumor Stage (AJCC)`, data = grupos_validos)
+    cat("\nResultado do teste de Bartlett para homogeneidade das variâncias:\n")
+    print(bartlett_result)
+  } else {
+    cat("\nNão há grupos suficientes com pelo menos 2 observações para realizar o teste de Bartlett.\n")
+  }
+}
+
+if (sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  modelo_anova <- aov(Ploidy ~ `Tumor Stage (AJCC)`, data = dados_limpos)
+  cat("\nResultado da ANOVA (Ploidy por estádio tumoral):\n")
+  print(summary(modelo_anova))
+}
+
+kruskal_result <- kruskal.test(Ploidy ~ `Tumor Stage (AJCC)`, data = dados_limpos)
+cat("\nResultado do teste de Kruskal-Wallis:\n")
+print(kruskal_result)
+
+```
+
+Através do shapiro.test(), verificou-se que os dados da variável Ploidy não seguem uma distribuição normal (p-value < 0.05). No entanto, considerando o grande tamanho da amostra (n = 317), e com base no teorema do limite central, aceitou-se a normalidade dos dados para a realização da ANOVA, apesar do p-value do teste de Shapiro-Wilk indicar a rejeição da hipótese nula.
+
+O teste de Bartlett revelou que as variâncias entre os grupos são homogéneas (p-value = 0.1531), atendendo ao pressuposto de homogeneidade das variâncias necessário para a ANOVA. Procedeu-se, então, à análise ANOVA one-way para verificar se existem diferenças significativas na média da ploidia entre os diferentes estádios tumorais. O resultado da ANOVA apresentou um p-value de 0.55, o que não permite rejeitar a hipótese nula. Assim, conclui-se que não há diferenças significativas na média da ploidia entre os diferentes estádios tumorais (AJCC).
+
+Para confirmar os resultados, realizou-se o teste não paramétrico Kruskal-Wallis, que não exige a normalidade dos dados. O teste apresentou um p-value de 0.6663, indicando que não há diferenças significativas na mediana da ploidia entre os diferentes estádios tumorais (AJCC).
+
+
+Definiram-se as seguintes hipóteses:
+
+H0: Não existe associação significativa entre o estado de sobrevivência dos pacientes (Overall Survival Status) e o estádio tumoral (Tumor Stage (AJCC)).
+H1: Existe uma associação significativa entre o estado de sobrevivência dos pacientes (Overall Survival Status) e o estádio tumoral (Tumor Stage (AJCC)).
+
+```{r Overall Survival Status}
+cat("\nAnálise para a variável: Overall Survival Status\n")
+
+if (sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  tab_survival <- table(dados_limpos$`Overall Survival Status`, dados_limpos$`Tumor Stage (AJCC)`)
+  cat("\nTabela de contingência (Estado de sobrevivência x Estádio tumoral):\n")
+  print(tab_survival)
+  
+  if (all(rowSums(tab_survival) > 1)) {
+    teste_qui2 <- chisq.test(tab_survival)
+    cat("\nResultado do teste qui-quadrado:\n")
+    print(teste_qui2)
+  } else {
+    cat("\nNão há observações suficientes em todos os grupos para realizar o teste qui-quadrado.\n")
+  }
+}
+```
+
+Para avaliar a associação entre estas variáveis categóricas, foi realizada uma análise de tabela de contingência, seguida do teste qui-quadrado de Pearson. A tabela de contingência revelou a distribuição dos pacientes vivos e falecidos em cada estádio tumoral.
+
+O teste qui-quadrado apresentou um valor de X² = 20.875 com 6 graus de liberdade e um p-value = 0.001932. Este resultado permite rejeitar a hipótese nula (H0) ao nível de significância de 5%, indicando que existe uma associação significativa entre o estado de sobrevivência dos pacientes e o estádio tumoral.
+
+Assim, conclui-se que o estádio tumoral está associado ao estado de sobrevivência dos pacientes, sugerindo que a gravidade do tumor pode influenciar a probabilidade de sobrevivência.
+
+Definiram-se as seguintes hipóteses:
+
+H0: Não existe associação significativa entre o sexo dos pacientes (Sex) e o estádio tumoral (Tumor Stage (AJCC)).
+H1: Existe uma associação significativa entre o sexo dos pacientes (Sex) e o estádio tumoral (Tumor Stage (AJCC)).
+
+```{r Sex}
+cat("\nAnálise para a variável: Sex\n")
+
+if (sum(!is.na(dados_limpos$`Tumor Stage (AJCC)`)) > 10) {
+  tab_sex <- table(dados_limpos$Sex, dados_limpos$`Tumor Stage (AJCC)`)
+  cat("\nTabela de contingência (Sexo x Estádio tumoral):\n")
+  print(tab_sex)
+  
+  if (all(rowSums(tab_sex) > 1)) {
+    teste_qui2 <- chisq.test(tab_sex)
+    cat("\nResultado do teste qui-quadrado:\n")
+    print(teste_qui2)
+  } else {
+    cat("\nNão há observações suficientes em todos os grupos para realizar o teste qui-quadrado.\n")
+  }
+}
+```
+
+Para avaliar a associação entre estas variáveis categóricas, foi realizada uma análise de tabela de contingência, seguida do teste qui-quadrado de Pearson. A tabela de contingência revelou a distribuição dos pacientes do sexo masculino e feminino em cada estádio tumoral.
+
+O teste qui-quadrado apresentou um valor de X² = 7.8278 com 6 graus de liberdade e um p-value = 0.251. Este resultado não permite rejeitar a hipótese nula (H0) ao nível de significância de 5%, indicando que não existe uma associação significativa entre o sexo dos pacientes e o estádio tumoral.
+
+Assim, conclui-se que o sexo dos pacientes não está associado ao estádio tumoral, sugerindo que a distribuição dos estádios tumorais é semelhante entre os sexos.
+
+
+***Análise por diferenças em características genómicas***
+
+Comparação de ploidia entre pacientes vivos e falecidos
+
+Realizamos um teste t para avaliar se há diferenças significativas na ploidia entre pacientes vivos e falecidos.
+
+```{r Análise por diferenças}
+teste_ploidia <- t.test(Ploidy ~ `Overall Survival Status`, data = dados_limpos)
+cat("Resultado do teste t (ploidia por status de sobrevivência):\n")
+print(teste_ploidia)
+```
+
+Esses testes fornecem perspetivas sobre as diferenças e associações entre variáveis clínicas e genómicas no carcinoma hepatocelular, contribuindo assim para a compreensão dos fatores que influenciam a progressão da doença e a sobrevivência dos pacientes.
+
+# ***Análise de expressão diferencial e enriquecimento***
+
+O dataset utilizado contém dados clínicos detalhados de pacientes com carcinoma hepatocelular (CHC).
+Por se tratar de um dataset clínico, a análise diferencial e de enriquecimento foca-se em padrões genómicos e clínicos, como a carga mutacional, duplicação genómica e associações entre variáveis clínicas.
+A ausência de dados de expressão génica limita a análise diferencial tradicional, mas permite explorar características genómicas e clínicas com implicações prognósticas.
+
+```{r Modelo logístico}
+modelo_logistico <- glm(`Overall Survival Status` ~ `Mutation Count` + Ploidy + `Age at Diagnosis` + Sex, 
+                        data = dados_limpos, 
+                        family = "binomial")
+summary(modelo_logistico)
+```
+
+```{r Modelo linear}
+modelo_linear <- lm(`Mutation Count` ~ `Age at Diagnosis`, data = dados_limpos)
+summary(modelo_linear)
+```
+
+```{r Boxplots}
+ggplot(dados_limpos %>% filter(!is.na(`Tumor Stage (AJCC)`)), 
+       aes(x = `Tumor Stage (AJCC)`, y = `Mutation Count`, fill = `Tumor Stage (AJCC)`)) +
+  geom_boxplot() +
+  labs(title = "Contagem de mutações por estádio tumoral", 
+       x = "Estádio tumoral", 
+       y = "Contagem de mutações")
+```
+O gráfico apresenta a distribuição da contagem de mutações em diferentes estádios tumorais, conforme a classificação AJCC. Cada boxplot representa a variação na contagem de mutações para um estádio tumoral específico, incluindo estádios numerados (1, 2, 3, 4) e estádios detalhados (T1N0M0, T2N0M0, T3aN0M0).
+
+Não há uma tendência clara de aumento ou diminuição da contagem de mutações com a progressão dos estádios tumorais (1 a 4). Isso sugere que a carga mutacional pode não estar diretamente relacionada ao avanço do estádio tumoral, mas sim a outros fatores biológicos ou genómicos.
+Os estádios detalhados (T2N0M0 e T3aN0M0) apresentam diferenças mais marcantes, já que o T2N0M0 possui uma maior carga mutacional, o que pode indicar maior instabilidade genómica nesse subgrupo.
+
+Os outliers observados nos estádios 2 e 3 podem representar tumores com características genómicas únicas, como maior instabilidade genómica ou presença de mutações específicas associadas a fatores ambientais ou genéticos.
+
+A análise da contagem de mutações por estádio tumoral é fundamental para compreender a relação entre a carga mutacional e a progressão do cancro. A ausência de uma tendência clara entre os estádios numerados sugere que a carga mutacional pode não ser um marcador direto de progressão tumoral, mas pode estar associada a subgrupos específicos, como observado no estádio T2N0M0.
+
+Posto isto, podemos observar através do gráfico que a contagem de mutações varia entre os estádios tumorais, mas sem uma relação linear clara com a progressão do estádio. O estádio T2N0M0 destaca-se por apresentar maior carga mutacional, enquanto o estádio 4 e T3aN0M0 mostram menor variabilidade. 
+
+***Análise de carga mutacional diferencial***
+
+A carga mutacional foi analisada em função de características clínicas, como sexo e ancestralidade.
+
+```{r Análise de carga mutacional diferencial}
+mutacoes_sexo <- dados_limpos %>%
+  group_by(Sex) %>%
+  summarize(
+    media_mutacoes = mean(`Mutation Count`, na.rm = TRUE),
+    sd_mutacoes = sd(`Mutation Count`, na.rm = TRUE),
+    n = n()
+  )
+
+mutacoes_ancestralidade <- dados_limpos %>%
+  filter(!is.na(`Primary Ancestry`)) %>%
+  group_by(`Primary Ancestry`) %>%
+  summarize(
+    media_mutacoes = mean(`Mutation Count`, na.rm = TRUE),
+    sd_mutacoes = sd(`Mutation Count`, na.rm = TRUE),
+    n = n()
+  ) %>%
+  filter(n >= 5) 
+
+ggplot(mutacoes_ancestralidade, aes(x = reorder(`Primary Ancestry`, -media_mutacoes), 
+                                   y = media_mutacoes)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_errorbar(aes(ymin = media_mutacoes - sd_mutacoes, 
+                    ymax = media_mutacoes + sd_mutacoes), width = 0.2) +
+  labs(title = "Carga mutacional por ancestralidade",
+       x = "Ancestralidade",
+       y = "Média de mutações") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+O gráfico de barras apresenta o erro padrão que mostra a média de mutações (carga mutacional) em pacientes com carcinoma hepatocelular (CHC), agrupados por ancestralidade (EUR para Europeia e ASN para Asiática).
+
+A média de mutações é semllhante entre os grupos EUR e ASN, com valores próximos. No entanto, as barras de erro indicam uma grande variabilidade dentro de cada grupo, especialmente no grupo ASN, que apresenta um intervalo de erro maior. O grupo EUR apresenta uma média de mutações ligeiramente menor e uma variabilidade menor, sugerindo que a carga mutacional é mais consistente entre os pacientes. Já o grupo ASN tem uma média de mutações ligeiramente maior, mas com maior variabilidade, o que pode indicar uma distribuição mais ampla de cargas mutacionais, possivelmente devido a fatores genómicos ou ambientais.
+
+Embora a análise da carga mutacional por ancestralidade possa identificar diferenças genómicas entre grupos, o gráfico não mostra evidências visuais de uma diferença significativa entre os grupos EUR e ASN. A variabilidade observada, especialmente no grupo ASN, pode ser influenciada por fatores como exposição ambiental, histórico clínico ou características tumorais.
+
+
+Assim, a carga mutacional média é semelhante entre os grupos EUR e ASN, com maior variabilidade no grupo ASN. Isso sugere que a ancestralidade, por si só, pode não ser um fator determinante na carga mutacional no CHC. Contudo, análises estatísticas adicionais são necessárias para confirmar essas observações e explorar interações com outras variáveis, como idade, sexo ou estádio tumoral.
+
+
+***Análise de sobrevivência***
+
+Embora o dataset contenha informações limitadas sobre tempos de sobrevivência, criamos um score prognóstico baseado em variáveis clínicas.
+
+```{r Análise de sobrevivência}
+col_sobrevivencia <- grep("survival|surv", names(dados_limpos), ignore.case = TRUE, value = TRUE)
+print("Colunas relacionadas à sobrevivência encontradas após limpeza:")
+print(col_sobrevivencia)
+
+dados_prog <- dados_limpos %>%
+  filter(!is.na(`Overall Survival Status`)) %>%
+  mutate(
+    status = as.numeric(substr(as.character(`Overall Survival Status`), 1, 1)),
+    idade_z = scale(`Age at Diagnosis`),
+    mutacao_z = scale(`Mutation Count`),
+    ploidia_z = scale(Ploidy)
+  )
+
+modelo_prog <- glm(status ~ idade_z + mutacao_z + ploidia_z + Sex, 
+                  data = dados_prog, 
+                  family = "binomial")
+
+summary(modelo_prog)
+
+dados_prog <- dados_prog %>%
+  mutate(
+    score_prog = predict(modelo_prog, type = "response"),
+    grupo_risco = cut(score_prog, 
+                     breaks = c(0, 0.25, 0.5, 0.75, 1), 
+                     labels = c("Muito baixo", "Baixo", "Moderado", "Alto"))
+  )
+
+ggplot(dados_prog, aes(x = `Overall Survival Status`, y = score_prog)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Score prognóstico por estado de sobrevivência",
+       x = "Estado de sobrevivência",
+       y = "Score prognóstico") +
+  theme_minimal()
+```
+
+O boxplot mostra a distribuição do score prognóstico nos pacientes deste estudo, agrupados pelo estado de sobrevivência (vivos e falecidos). O score foi calculado com base em variáveis clínicas e genómicas, como idade, contagem de mutações, ploidia e sexo, utilizando um modelo de regressão logística.
+
+A mediana do score prognóstico é semelhante entre os dois grupos, com valores em torno de 0.2. No entanto, a variabilidade é ligeiramente maior no grupo de pacientes falecidos, indicando maior dispersão dos scores. Há também outliers em ambos os grupos, com scores superiores a 0.4, especialmente entre os pacientes vivos.
+
+O modelo de regressão logística revelou que a contagem de mutações tem uma associação significativa e positiva com o estado de sobrevivência, sugerindo que um maior número de mutações está relacionado a uma maior probabilidade de óbito. Já a idade, ploidia e sexo não mostraram significância estatística, indicando que, isoladamente, essas variáveis não têm um impacto relevante no score prognóstico.
+
+A análise destaca a importância da contagem de mutações como um fator relevante para o prognóstico, mas sugere que variáveis como idade, ploidia e sexo não são determinantes isoladamente para o estado de sobrevivência. A semelhança nas medianas dos scores entre os grupos indica que o modelo pode ter limitações em distinguir claramente entre os pacientes vivos e falecidos.
+
+Assim, os resultados indicam que a contagem de mutações é a variável mais importante para o prognóstico no CHC, enquanto as outras variáveis têm um impacto limitado.
+
+
+
+***Distribuição do grupo de risco por estado de sobrevivência***
+
+A distribuição dos grupos de risco (muito baixo, baixo, moderado, alto) foi analisada em relação ao estado de sobrevivência.
+
+```{r Distribuição do grupo de risco por status de sobrevivência}
+ggplot(dados_prog, aes(x = grupo_risco, fill = `Overall Survival Status`)) +
+  geom_bar(position = "fill") +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Proporção de estado de sobrevivência por grupo de risco",
+       x = "Grupo de risco",
+       y = "Proporção",
+       fill = "Estado de sobrevivência") +
+  theme_minimal()
+```
+O gráfico apresentado é um gráfico de barras que mostra a proporção de pacientes vivos (0:LIVING) e falecidos (1:DECEASED) em diferentes grupos de risco: Muito Baixo, Baixo e Moderado. 
+
+No grupo "Muito Baixo", todos os pacientes estão vivos, indicando um excelente prognóstico, enquanto no grupo "Baixo", a maioria dos pacientes também está viva, mas com uma pequena proporção de falecidos, sugerindo uma leve piora no prognóstico. Já no grupo "Moderado", cerca de 50% dos pacientes faleceram, refletindo um aumento considerável no risco de óbito.
+
+Como seria de esperar, observa-se uma clara tendência de que, à medida que o risco aumenta, também aumenta a proporção de pacientes falecidos. Isso sugere que os fatores usados para definir os grupos de risco são relevantes no estado de sobrevivência. A ausência de óbitos no grupo "Muito Baixo" e a alta taxa de óbitos no grupo "Moderado" indicam que os pacientes com maior risco possuem características associadas a um prognóstico pior.
+
+Este gráfico é crucial para validar os grupos de risco como previsão do estado de sobrevivência, demonstrando a eficácia desses grupos para estratificar os pacientes com base no prognóstico. No entanto, o gráfico não apresenta o número absoluto de pacientes em cada grupo, o que limita a avaliação da robustez das conclusões. Além disso, não foram realizados testes estatísticos para confirmar a significância das diferenças entre os grupos.
+
+Em conclusão, o gráfico mostra uma relação clara entre os grupos de risco e o estado de sobrevivência, com uma maior proporção de óbitos associada a um maior risco. 
+
+
+***Simulação de dados de sobrevivência***
+
+Como os tempos de sobrevivência reais não estão disponíveis, simulamos tempos de sobrevivência com base no score prognóstico calculado anteriormente. A simulação considera uma correlação negativa entre o score e o tempo de sobrevivência.
+
+```{r Simulação de dados de sobrevivência}
+set.seed(123) 
+dados_surv <- dados_prog %>%
+  mutate(
+    tempo_sobrevivencia = round(60 * (1 - score_prog) * (1 + rnorm(n(), 0, 0.3)))
+  )
+
+glimpse(dados_surv)
+```
+A análise dos dados de 323 pacientes com o cancro em estudo revelou informações significativas sobre as suas características clínicas, genéticas e prognósticas. A amostra é majoritariamente composta por pacientes de ascendência asiática (ASN), seguidos por europeus (EUR), com predominância masculina. A idade no diagnóstico variou amplamente, abrangendo desde pacientes na faixa dos 20 anos até mais de 80 anos.
+
+Os tempos de sobrevivência simulados indicaram que scores prognósticos mais elevados estão relacionados a tempos de sobrevivência mais curtos, o que reflete a gravidade da doença. A categorização dos pacientes em grupos de risco, variando de "Muito Baixo" a "Muito Alto", revelou que a maioria dos pacientes se encontra nos grupos de risco mais baixos. Fatores como carga mutacional, ploidia e pureza tumoral mostraram variações significativas, evidenciando a heterogeneidade dos dados. A presença ou ausência de duplicação do genoma (WGD) também foi identificada como um fator relevante para o prognóstico.
+
+Esses resultados destacam assim, a importância de combinar dados clínicos e genómicos para estratificar os pacientes e personalizar os tratamentos relativos à doença em estudo. 
+
+***Análise de sobrevivência com Kaplan-Meier e regressão de Cox***
+
+A análise de sobrevivência foi realizada utilizando o método Kaplan-Meier para estimar as curvas de sobrevivência e um modelo de regressão de Cox para identificar os fatores associados ao tempo de sobrevivência.
+Como os tempos reais de sobrevivência não estão disponíveis no dataset clínico, os tempos foram simulados com base num score prognóstico previamente calculado.
+
+```{r Análise de sobrevivência com Kaplan-Meier e regressão de Cox}
+if(exists("dados_surv") && nrow(dados_surv) > 10) {
+  surv_obj <- Surv(time = dados_surv$tempo_sobrevivencia, event = dados_surv$status)
+  
+  fit_sexo <- survfit(surv_obj ~ Sex, data = dados_surv)
+  
+  fit_risco <- survfit(surv_obj ~ grupo_risco, data = dados_surv)
+  
+  surv_plot1 <- ggsurvplot(
+    fit_sexo, 
+    data = dados_surv,
+    pval = TRUE,
+    conf.int = TRUE,
+    risk.table = TRUE,
+    legend.labs = c("Feminino", "Masculino"),
+    title = "Curva de sobrevivência por sexo (simulada)",
+    xlab = "Tempo (meses)",
+    subtitle = "Nota: Tempos de sobrevivência simulados baseados em score prognóstico"
+  )
+  
+  surv_plot2 <- ggsurvplot(
+    fit_risco, 
+    data = dados_surv,
+    pval = TRUE,
+    conf.int = TRUE,
+    risk.table = TRUE,
+    palette = "Set1",
+    title = "Curva de sobrevivência por grupo de risco (simulada)",
+    xlab = "Tempo (meses)",
+    subtitle = "Nota: Tempos de sobrevivência simulados baseados em score prognóstico"
+  )
+  
+  print(surv_plot1)
+  print(surv_plot2)
+
+  cox_model <- coxph(surv_obj ~ `Age at Diagnosis` + `Mutation Count` + Ploidy + Sex, data = dados_surv)
+  print(summary(cox_model))
+}
+```
+
+Relativamente ao primeiro gráfico, sendo este "Curva de sobrevivência por sexo(simulada)", o gráfico mostra curvas de sobrevivência simuladas para pacientes masculinos e femininos com o cancro em estudo, baseadas em tempos estimados a partir de um score prognóstico. A análise foi realizada com o modelo de regressão de Cox, incluindo variáveis como idade no diagnóstico, contagem de mutações, ploidia e sexo.
+
+De forma geral, as curvas de sobrevivência para os dois sexos são bastante semelhantes, com uma sobreposição significativa, e o valor de p = 0.33 indica que não há diferença estatisticamente significativa entre elas. A probabilidade de sobrevivência diminui gradualmente, com uma queda mais acentuada após os 50 meses.
+
+Já a contagem de mutações foi a única variável estatisticamente significativa, com um coeficiente positivo, sugerindo que um aumento nas mutações está associado a maior risco de óbito. A idade apresentou uma associação marginalmente significativa, com a idade mais avançada sugerindo um risco ligeiramente menor de óbito, mas sem significância estatística. A ploidia não foi significativa, embora o risco de óbito aumente com maiores valores de ploidia. O sexo masculino apresentou uma associação marginalmente significativa, indicando que os homens podem ter um risco de óbito cerca de 40% menor que as mulheres.
+
+O gráfico e os resultados do modelo indicam que, neste estudo, o sexo não é um fator determinante para a sobrevivência em pacientes desta doença, com a contagem de mutações sendo o principal fator de prognóstico.
+
+
+Relativamente ao segyundo gráfico, sendo este "Curva de sobrevivência por grupo de risco(simulada)", o gráfico mostra curvas de sobrevivência simuladas para pacientes, agrupados em três grupos de risco (Muito baixo, Baixo e Moderado), com base num score prognóstico que inclui variáveis clínicas e genómicas. A análise foi realizada com o modelo de regressão de Cox, considerando as variáveis, idade no diagnóstico, contagem de mutações, ploidia e sexo.
+
+De forma geral, o grupo de risco Muito baixo apresenta a maior probabilidade de sobrevivência, com uma queda gradual e menor mortalidade. O grupo Baixo tem uma redução mais acentuada na probabilidade de sobrevivência, enquanto o grupo Moderado, com a menor probabilidade, apresenta uma queda rápida nos primeiros 25 meses, sem sobrevivência após esse período. As diferenças entre os grupos são estatisticamente significativas (p < 0.0001). 
+
+No modelo de regressão de Cox, a contagem de mutações foi a variável mais significativa, com cada mutação adicional proporcionando um aumento do risco de óbito em cerca de 1.4%. A idade no diagnóstico, embora marginalmente significativa, sugere que idades mais avançadas estão associadas a um risco ligeiramente menor de óbito. A ploidia e o sexo apresentaram associações marginais, com a ploidia sugerindo um risco ligeiramente maior de óbito e o sexo masculino associado a um risco de óbito aproximadamente 40% menor em comparação às mulheres. 
+
+
+***Correlação entre variáveis e análise multivariada***
+
+A análise de correlação foi realizada com o intuito de explorar relações entre variáveis numéricas no dataset, como idade no diagnóstico, carga mutacional, ploidia e pureza. A matriz de correlação foi calculada utilizando o método de correlação de Pearson, e os resultados foram visualizados por meio de:
+
+1.Heatmap: Representa graficamente as correlações entre variáveis, facilitando a identificação de padrões.
+2.Gráficos de pares: Mostram a dispersão entre pares de variáveis, permitindo observar relações lineares ou não lineares.
+3.Rede de correlações: Destaca correlações significativas acima de um limiar definido, ajudando a identificar interações importantes.
+
+```{r Correlação entre variáveis e análise multivariada}
+if (!requireNamespace("RColorBrewer", quietly = TRUE)) {
+  install.packages("RColorBrewer")
+}
+library(RColorBrewer)
+
+vars_num <- dados_limpos %>%
+  dplyr::select(`Age at Diagnosis`, `Mutation Count`, Ploidy, Purity, `TMB (nonsynonymous)`, `Tumor Break Load`) %>%
+  drop_na()
+
+if (nrow(vars_num) > 10) {
+  matriz_cor <- cor(vars_num, use = "pairwise.complete.obs")
+  cat("\nMatriz de correlação entre variáveis numéricas:\n")
+  print(round(matriz_cor, 3))
+  
+  heatmap.2(matriz_cor, 
+            col = colorRampPalette(brewer.pal(9, "Blues"))(25),
+            trace = "none",
+            main = "Correlações entre variáveis clínicas e genómicas",
+            density.info = "none",
+            margins = c(10, 10))
+  
+  pairs(vars_num, 
+        main = "Gráficos de dispersão entre variáveis",
+        pch = 19, 
+        col = alpha("darkblue", 0.5))
+  
+  corr_threshold <- 0.3
+  significant_corrs <- which(abs(matriz_cor) > corr_threshold & upper.tri(matriz_cor), arr.ind = TRUE)
+  
+  if (nrow(significant_corrs) > 0) {
+    corr_network <- data.frame(
+      var1 = rownames(matriz_cor)[significant_corrs[,1]],
+      var2 = colnames(matriz_cor)[significant_corrs[,2]],
+      correlation = matriz_cor[significant_corrs]
+    )
+    
+    ggplot(corr_network, aes(x = var1, y = var2, fill = correlation)) +
+      geom_tile() +
+      scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                           midpoint = 0, limit = c(-1, 1)) +
+      theme_minimal() +
+      labs(title = "Rede de correlações significativas",
+           x = "",
+           y = "",
+           fill = "Correlação") +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
+}
+```
+
+Relativamente ao heatmap, este apresenta uma matriz de correlação entre variáveis clínicas e genómicas, como idade no diagnóstico, contagem de mutações, ploidia, pureza tumoral, carga mutacional (TMB) e carga de quebra tumoral. A intensidade das cores reflete a força das correlações, variando de fracas (azul claro) a fortes (azul escuro).
+
+De forma geral, a contagem de mutações tem uma correlação moderada com a pureza tumoral (r = 0.315) e com a TMB (nonsynonymous) (r = 1.000), como esperado, já que ambas estão associadas à carga mutacional. A TMB também se correlaciona moderadamente com a pureza tumoral (r = 0.316). A idade no diagnóstico apresenta correlações fracas com a contagem de mutações (r = 0.206) e TMB (r = 0.206), sugerindo uma leve tendência para maior carga mutacional em pacientes mais velhos. A carga de quebra tumoral tem correlações fracas com todas as variáveis, sendo a mais alta com a contagem de mutações (r = 0.152). A ploidia mostra correlações muito fracas com outras variáveis, indicando que não está diretamente associada a fatores como carga mutacional ou pureza tumoral.
+
+A interpretação dos resultados sugere que tumores com maior pureza tendem a ter uma maior carga mutacional, refletindo maior instabilidade genómica. Embora a idade no diagnóstico mostre uma correlação fraca com a carga mutacional, ela não parece ser um fator determinante. A ploidia e a carga de quebra tumoral não apresentam correlações significativas com as outras variáveis, sugerindo que podem ser influenciadas por outros fatores não considerados nesta análise.
+
+
+Agora considerando os gráficos de pares, estes ilustram as relações entre as variáveis já mencionadas. A análise visual complementa os resultados da matriz de correlação, ajudando a identificar padrões e tendências nos dados.
+
+Em relação às variáveis, observa-se uma leve tendência positiva entre a idade no diagnóstico e a contagem de mutações, indicando que pacientes mais velhos tendem a apresentar uma carga mutacional ligeiramente maior, embora a correlação seja fraca. A contagem de mutações e a TMB têm uma relação linear clara, refletindo que ambas medem a carga mutacional. A contagem de mutações também se correlaciona moderadamente com a pureza tumoral, sugerindo que tumores com maior pureza tendem a ter maior carga mutacional. A ploidia, por outro lado, apresenta correlações muito fracas com as outras variáveis, indicando que é um fator independente. A carga de quebra tumoral tem correlações fracas com todas as variáveis, sendo a mais forte com a contagem de mutações, mas ainda assim limitada.
+
+A distribuição dos dados mostra uma heterogeneidade nas variáveis, com alguns outliers visíveis, especialmente nas variáveis de contagem de mutações e TMB, o que pode indicar casos com características genómicas ou clínicas únicas. Além disso, algumas variáveis, como ploidia e idade no diagnóstico, não apresentam relações lineares claras, sugerindo que podem ser influenciadas por fatores externos.
+
+
+Já tendo em conta a rede de correlações, esta mostra uma rede de correlações significativas entre as variáveis representadas, sendo que as cores mais escuras no gráfico indicam correlações mais fortes.
+
+A correlação entre TMB e contagem de mutações é extremamente forte (r = 1.000), o que é esperado, pois ambas estão diretamente relacionadas à carga mutacional. A TMB também apresenta uma correlação moderada (r = 0.316) com a pureza tumoral, sugerindo que tumores mais puros têm maior carga mutacional devido à menor presença de células normais. Da mesma forma, a contagem de mutações também está moderadamente correlacionada com a pureza tumoral (r = 0.315), indicando que tumores com maior pureza têm mais mutações.
+
+Outras variáveis, como ploidia, idade no diagnóstico e carga de quebra tumoral, não aparecem no gráfico, indicando que suas correlações com as variáveis analisadas não são significativas ou são fracas.
+
+
+***Análise de componentes principais (PCA)***
+
+A análise de componentes principais (PCA) foi realizada para identificar padrões nos dados clínicos e genómicos, reduzindo a dimensionalidade, ao mesmo tempo que destaca as variáveis mais relevantes.
+
+Os componentes principais foram calculados com base nos dados padronizados.
+A variância explicada por cada componente foi avaliada para determinar a sua relevância.
+
+```{r Análise de componentes principais (PCA)}
+pca_data <- dados_limpos %>%
+  dplyr::select(`Age at Diagnosis`, `Mutation Count`, Ploidy, Purity, `TMB (nonsynonymous)`, `Tumor Break Load`) %>%
+  drop_na()
+
+if(nrow(pca_data) > 10) {
+  pca_res <- prcomp(pca_data, scale. = TRUE)
+  
+  pca_plot1 <- fviz_pca_biplot(pca_res, 
+                col.ind = dados_limpos$Sex[match(rownames(pca_data), rownames(dados_limpos))],
+                palette = "jco",
+                addEllipses = TRUE,
+                label = "var",
+                col.var = "black",
+                repel = TRUE,
+                legend.title = "Sexo",
+                title = "PCA por sexo")
+
+  pca_plot2 <- fviz_pca_biplot(pca_res, 
+                col.ind = dados_limpos$`Whole Genome Duplication`[match(rownames(pca_data), rownames(dados_limpos))],
+                palette = "Dark2",
+                addEllipses = TRUE,
+                label = "var",
+                col.var = "black",
+                repel = TRUE,
+                legend.title = "Duplicação genómica",
+                title = "PCA por duplicação genómica")
+
+  pca_plot3 <- fviz_pca_biplot(pca_res, 
+                col.ind = dados_limpos$`Overall Survival Status`[match(rownames(pca_data), rownames(dados_limpos))],
+                palette = "Set1",
+                addEllipses = TRUE,
+                label = "var",
+                col.var = "black",
+                repel = TRUE,
+                legend.title = "Estado de sobrevivência",
+                title = "PCA por Estado de sobrevivência")
+
+  grid.arrange(pca_plot1, pca_plot2, pca_plot3, ncol = 2)
+
+  print("Variância explicada pelos componentes principais:")
+  print(summary(pca_res))
+
+  fviz_eig(pca_res, 
+         addlabels = TRUE, 
+         barfill = "skyblue", 
+         title = "Scree Plot - Variância explicada por componente")
+
+  fviz_contrib(pca_res, choice = "var", axes = 1:2,
+              title = "Contribuição das variáveis para PC1 e PC2")
+}
+```
+
+Relativamente à análise por sexo, não foi observada uma separação clara entre os grupos masculino e feminino, sugerindo que o sexo não influencia significativamente as variações nas características genómicas e clínicas. As variáveis contagem de mutações, TMB e pureza tumoral contribuíram mais para o PC1, enquanto idade no diagnóstico e ploidia tiveram maior impacto no PC2.
+
+Ao analisar a duplicação genómica, os grupos com duplicação (wgd) e sem duplicação (no_wgd) apresentaram uma leve separação ao longo do PC1, indicando que a duplicação genómica pode estar associada a variações genómicas, particularmente em relação à carga mutacional. Já na análise por estado de sobrevivência, houve uma sobreposição significativa entre os grupos de pacientes vivos e falecidos, indicando que as variáveis analisadas não conseguem discriminar claramente esses dois grupos. Novamente, as variáveis mais associadas ao PC1 foram contagem de mutações, TMB e pureza tumoral.
+
+
+
+Passando à análise da contribuição das variáveis para os dois primeiros componentes principais (PC1 e PC2) do PCA revela que essas variáveis explicam juntas 57.2% da variância total dos dados, com PC1 contribuindo com 38.2% e PC2 com 19%.
+
+As variáveis mais relevantes para PC1 e PC2 são a carga mutacional (TMB nonsynonymous) e a contagem de mutações, ambas com contribuições superiores a 20%. Isso destaca a importância da instabilidade genómica como fator central na variabilidade dos tumores analisados. A Tumor Break Load tem uma contribuição intermediária, sugerindo o seu papel relevante, mas de menor impacto em comparação com a carga mutacional. A idade no diagnóstico apresenta uma contribuição moderada, indicando que, embora influencie a variabilidade, não tem o mesmo peso das variáveis genómicas. Por fim, a ploidia e a pureza tumoral são as variáveis com menor contribuição para os dois primeiros componentes, sugerindo um impacto limitado na explicação da variância principal.
+
+
+
+# ***Conclusões e implicações clínicas***
+
+Este trabalho apresentou uma análise aprofundada de dados clínicos e genómicos de pacientes com carcinoma hepatocelular (CHC), recorrendo a uma abordagem multidisciplinar que combinou estatística descritiva, testes de hipóteses, modelos preditivos e técnicas de redução de dimensionalidade. Através desta perspetiva integrada, foi possível obter uma visão abrangente sobre os fatores que caracterizam a heterogeneidade do CHC e o seu impacto no prognóstico dos pacientes.
+
+Inicialmente, a análise descritiva revelou que a maioria dos pacientes foi diagnosticada entre os 60 e os 74 anos, com predominância do sexo masculino e de ancestralidade asiática. A carga mutacional apresentou uma distribuição assimétrica, com outliers indicativos de instabilidade genómica relevante. A ploidia, em geral estável, revelou variações notáveis em subgrupos, sugerindo possíveis associações com agressividade tumoral. Estes resultados fundamentaram a importância de considerar idade, sexo e ploidia na estratificação clínica.
+
+Ao nível da exploração visual e inferencial, observou-se que a carga mutacional tende a ser mais elevada em pacientes mais velhos, e que há uma tendência de associação entre maior carga mutacional e estados de sobrevivência menos favoráveis. A duplicação genómica (WGD), por sua vez, revelou-se mais prevalente em estádios tumorais avançados, apontando para o seu potencial valor como marcador de progressão da doença.
+
+Apesar das análises estatísticas não indicarem diferenças significativas na contagem de mutações, idade ou ploidia entre os diferentes estádios tumorais, foi possível validar, através de testes de associação, a relevância do estádio AJCC como fator prognóstico, destacando a sua relação com a sobrevivência dos pacientes.
+
+Avançando para a modelação preditiva, a análise por regressão logística e os modelos de Cox identificaram a contagem de mutações como o único fator consistentemente associado ao risco de óbito, posicionando-a como um marcador genómico de alto valor de prognóstico na doença. O score de risco desenvolvido a partir de variáveis clínicas e genómicas permitiu estratificar os pacientes em grupos com probabilidades de sobrevivência distintas, mesmo em cenários de dados simulados, validando a aplicabilidade da abordagem em contextos clínicos com informação incompleta.
+
+Adicionalmente, as curvas de Kaplan-Meier reforçaram a eficácia dessa estratificação, demonstrando diferenças estatisticamente significativas entre os grupos de risco. Esses resultados podem ser implementados na prática clínica através de protocolos de vigilância personalizada, que identifiquem pacientes com maior risco de progressão para acompanhamento mais frequente, ou na seleção de candidatos para terapias direcionadas, como imunoterapias ou tratamentos específicos para tumores com alta carga mutacional. Além disso, a integração desses modelos em sistemas de suporte à decisão clínica pode otimizar a alocação de recursos e melhorar os desfechos dos pacientes. Esta evidência reforça o potencial do modelo para apoio à decisão clínica, permitindo identificar perfis com maior risco de progressão e necessidade de vigilância intensiva.
+
+Por fim, a análise de componentes principais revelou que a carga mutacional e o TMB são os principais eixos de variação nos dados, destacando o papel central da instabilidade genómica no CHC. Embora variáveis clínicas como idade e sexo tenham mostrado impacto reduzido na variabilidade global, os padrões identificados pela PCA sugerem que a integração com dados moleculares adicionais poderá aumentar significativamente o poder discriminativo de futuras análises.
+
+Em suma, este estudo demonstrou que a integração de dados clínicos e genómicos permite construir modelos preditivos promissores para estratificação de risco e perceber o perfil dos pacientes. A carga mutacional destacou-se como o marcador mais informativo, com implicações relevantes para o prognóstico e para a personalização do tratamento. Estes dados sugerem que, na prática clínica, a avaliação da carga mutacional pode ser incorporada como um critério-chave para identificar pacientes com maior risco de progressão, permitindo intervenções mais precoces e direcionadas. Além disso, a relevância do estádio AJCC e da duplicação genómica (WGD) como potenciais marcadores de progressão reforça a necessidade de uma abordagem multidimensional no acompanhamento dos pacientes. A inclusão de dados moleculares adicionais, como expressão génica ou metilação, poderá também aumentar a precisão dos modelos e avançar na implementação de uma medicina de precisão mais eficaz no tratamento do CHC.
+
+
+# ***Referências***
+
+1.  Biemar, F., & Foti, M.
+    (2013).
+    Global progress against cancer—challenges and opportunities.
+    Cancer Biology & Medicine, 10(4), 183.
+    <https://doi.org/10.7497/J.ISSN.2095-3941.2013.04.001>
+
+2.  Sung, H., Ferlay, J., Siegel, R. L., Laversanne, M., Soerjomataram, I., Jemal, A., & Bray, F.
+    (2021).
+    Global Cancer Statistics 2020: GLOBOCAN Estimates of Incidence and Mortality Worldwide for 36 Cancers in 185 Countries.
+    CA: A Cancer Journal for Clinicians, 71(3), 209–249.
+    <https://doi.org/10.3322/CAAC.21660>
+
+3.  Afonso, N., Fragoso, M., Pinto, D., Medeiros, R., Pais, I., Sanches, E., & Lopes, C.
+    (2018).
+    Carcinoma hepatocelular.
+    EMC - Tratado de Medicina, 22(2), 1–9.
+    [https://doi.org/10.1016/S1636-5410(18)89309-6](https://doi.org/10.1016/S1636-5410(18)89309-6){.uri}
+
+4.  Gomes, M. A., Priolli, D. G., Tralhão, J. G., & Botelho, M. F.
+    (2013).
+    Hepatocellular carcinoma: epidemiology, biology, diagnosis, and therapies.
+    Revista Da Associacao Medica Brasileira (1992), 59(5), 514–524.
+    <https://doi.org/10.1016/J.RAMB.2013.03.005>
+
+5.  Pin Vieito, N., Guerrero Montañés, A., & Delgado Blanco, M.
+    (2014).
+    Hepatocarcinoma: estado actual Hepatocellular carcinoma: current situation.
+    Galicia Clin, 75(4), 171–181.
